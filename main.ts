@@ -207,10 +207,6 @@ class Page {
   }
 
   // ---- text ----
-  glyphWidth(scale: number): number {
-    return 6 * scale - scale;
-  }
-
   measure(s: string, scale: number): number {
     return s.length * 6 * scale - scale;
   }
@@ -238,6 +234,8 @@ class Page {
   }
 
   // Word-wrap to lines of at most maxW pixels; returns the lines.
+  // When maxLines cuts the text, the last kept line gains an ellipsis
+  // so a cut is visible instead of words vanishing silently.
   wrap(s: string, maxW: number, scale: number, maxLines?: number): string[] {
     const words = s.toUpperCase().split(/\s+/).filter(Boolean);
     const lines: string[] = [];
@@ -253,7 +251,14 @@ class Page {
     }
     if (cur) lines.push(cur);
     if (maxLines !== undefined && lines.length > maxLines) {
-      return lines.slice(0, maxLines);
+      const kept = lines.slice(0, maxLines);
+      let last = kept[maxLines - 1];
+      while (last.length > 0 && this.measure(last + '...', scale) > maxW) {
+        const sp = last.lastIndexOf(' ');
+        last = sp > 0 ? last.slice(0, sp) : '';
+      }
+      kept[maxLines - 1] = last ? last + '...' : '...';
+      return kept;
     }
     return lines;
   }
