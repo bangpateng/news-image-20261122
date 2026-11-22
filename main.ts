@@ -246,7 +246,9 @@ function drawLine(s: Sheet, x: number, y: number, text: string, scale: number, c
   return cx;
 }
 
-// Greedy word wrap. Long words are split across lines rather than dropped.
+// Greedy word wrap. Long words are split across lines rather than dropped;
+// each split fragment but the last ends with a hyphen so the reader sees
+// the word continues on the next line.
 function wrapLines(text: string, maxWidth: number, scale: number): string[] {
   const lines: string[] = [];
   const words = text.split(/\s+/).filter(Boolean);
@@ -262,12 +264,18 @@ function wrapLines(text: string, maxWidth: number, scale: number): string[] {
     }
     push(cur);
     if (textWidth(word, scale) > maxWidth) {
-      // split the overlong word itself
+      // Split the overlong word itself, marking each continuation with a
+      // hyphen (reserving one column for it so the fragment still fits).
       const per = Math.max(1, Math.floor(maxWidth / (GLYPH_ADVANCE * scale)));
       let rest = word;
       while (rest.length > per) {
-        lines.push(rest.slice(0, per));
-        rest = rest.slice(per);
+        if (per >= 2) {
+          lines.push(rest.slice(0, per - 1) + "-");
+          rest = rest.slice(per - 1);
+        } else {
+          lines.push(rest.slice(0, per));
+          rest = rest.slice(per);
+        }
       }
       cur = rest;
     } else {
